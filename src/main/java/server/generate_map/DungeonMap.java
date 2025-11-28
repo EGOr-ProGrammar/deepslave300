@@ -6,38 +6,29 @@ import shared.Position;
 import java.util.Random;
 
 public class DungeonMap {
+    // Размеры карты без стен
     public static final int WIDTH = 120;
     public static final int HEIGHT = 90;
     private final TileType[][] tiles;
-    private final int mapIdX, mapIdY; // Координаты этой карты в сетке уровня
 
     public DungeonMap(int idX, int idY) {
-        this.mapIdX = idX;
-        this.mapIdY = idY;
         this.tiles = new TileType[HEIGHT][WIDTH];
         generate();
     }
 
-    // Генерация "пещеры" (Cellular Automata)
     private void generate() {
         Random rand = new Random();
-        // 1. Шум
+        // Шум
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
-                if (rand.nextDouble() < 0.45) {
-                    tiles[y][x] = TileType.WALL;
-                } else {
-                    tiles[y][x] = TileType.FLOOR;
-                }
+                tiles[y][x] = (rand.nextDouble() < 0.45) ? TileType.WALL : TileType.FLOOR;
             }
         }
 
-        // 2. Сглаживание (4-5 итераций)
-        for (int i = 0; i < 5; i++) {
-            smoothMap();
-        }
+        // Сглаживание
+        for (int i = 0; i < 5; i++) smoothMap();
 
-        // 3. Гарантируем стены по краям (но оставляем проходы!)
+        // Гарантированные стены по периметру
         for (int y = 0; y < HEIGHT; y++) {
             tiles[y][0] = TileType.WALL;
             tiles[y][WIDTH - 1] = TileType.WALL;
@@ -47,54 +38,48 @@ public class DungeonMap {
             tiles[HEIGHT - 1][x] = TileType.WALL;
         }
 
-        // 4. Создаем "Ворота" (проходы к соседям)
-        // Проходы всегда по центру стен, чтобы стыковаться
+        // Ворота
         createGates();
+    }
+
+    private void createGates() {
+        int cx = WIDTH / 2;
+        int cy = HEIGHT / 2;
+
+        // Безопасное создание проходов
+        for (int i = -2; i <= 2; i++) {
+            if (cx + i >= 0 && cx + i < WIDTH) tiles[0][cx + i] = TileType.FLOOR; // Север
+            if (cx + i >= 0 && cx + i < WIDTH) tiles[HEIGHT - 1][cx + i] = TileType.FLOOR; // Юг
+            if (cy + i >= 0 && cy + i < HEIGHT) tiles[cy + i][0] = TileType.FLOOR; // Запад
+            if (cy + i >= 0 && cy + i < HEIGHT) tiles[cy + i][WIDTH - 1] = TileType.FLOOR; // Восток
+        }
     }
 
     private void smoothMap() {
         TileType[][] nextTiles = new TileType[HEIGHT][WIDTH];
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
-                int wallCount = countWallNeighbors(x, y);
-                if (wallCount > 4) nextTiles[y][x] = TileType.WALL;
-                else if (wallCount < 4) nextTiles[y][x] = TileType.FLOOR;
+                int walls = countWalls(x, y);
+                if (walls > 4) nextTiles[y][x] = TileType.WALL;
+                else if (walls < 4) nextTiles[y][x] = TileType.FLOOR;
                 else nextTiles[y][x] = tiles[y][x];
             }
         }
-        for (int y = 0; y < HEIGHT; y++) {
-            System.arraycopy(nextTiles[y], 0, tiles[y], 0, WIDTH);
-        }
+        for (int i = 0; i < HEIGHT; i++) System.arraycopy(nextTiles[i], 0, tiles[i], 0, WIDTH);
     }
 
-    private int countWallNeighbors(int gridX, int gridY) {
+    private int countWalls(int x, int y) {
         int count = 0;
-        for (int neighborY = gridY - 1; neighborY <= gridY + 1; neighborY++) {
-            for (int neighborX = gridX - 1; neighborX <= gridX + 1; neighborX++) {
-                if (neighborX >= 0 && neighborX < WIDTH && neighborY >= 0 && neighborY < HEIGHT) {
-                    if (neighborX != gridX || neighborY != gridY) {
-                        if (tiles[neighborY][neighborX] == TileType.WALL) {
-                            count++;
-                        }
-                    }
-                } else {
-                    count++; // Границы считаем стенами
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0) continue;
+                int nx = x + dx, ny = y + dy;
+                if (nx < 0 || nx >= WIDTH || ny < 0 || ny >= HEIGHT || tiles[ny][nx] == TileType.WALL) {
+                    count++;
                 }
             }
         }
         return count;
-    }
-
-    private void createGates() {
-        // Пробиваем дырки по центрам сторон (шириной 4 тайла)
-        // СЕВЕР (y=0)
-        for (int x = WIDTH / 2 - 2; x <= WIDTH / 2 + 2; x++) tiles[0][x] = TileType.FLOOR;
-        // ЮГ (y=HEIGHT-1)
-        for (int x = WIDTH / 2 - 2; x <= WIDTH / 2 + 2; x++) tiles[HEIGHT - 1][x] = TileType.FLOOR;
-        // ЗАПАД (x=0)
-        for (int y = HEIGHT / 2 - 2; y <= HEIGHT / 2 + 2; y++) tiles[y][0] = TileType.FLOOR;
-        // ВОСТОК (x=WIDTH-1)
-        for (int y = HEIGHT / 2 - 2; y <= HEIGHT / 2 + 2; y++) tiles[y][WIDTH - 1] = TileType.FLOOR;
     }
 
     public TileType getTile(int x, int y) {
@@ -102,19 +87,13 @@ public class DungeonMap {
         return tiles[y][x];
     }
 
-    public void setTile(int x, int y, TileType type) {
-        if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
-            tiles[y][x] = type;
-        }
-    }
-
     public Position getRandomFloorPosition() {
         Random rand = new Random();
-        int x, y;
-        do {
-            x = rand.nextInt(WIDTH - 2) + 1;
-            y = rand.nextInt(HEIGHT - 2) + 1;
-        } while (tiles[y][x] != TileType.FLOOR);
-        return new Position(x, y);
+        for (int i = 0; i < 1000; i++) { // Защита от бесконечного цикла
+            int x = rand.nextInt(WIDTH - 2) + 1;
+            int y = rand.nextInt(HEIGHT - 2) + 1;
+            if (tiles[y][x] == TileType.FLOOR) return new Position(x, y);
+        }
+        return new Position(WIDTH/2, HEIGHT/2); // Fallback
     }
 }

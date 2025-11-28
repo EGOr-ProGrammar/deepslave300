@@ -10,6 +10,7 @@ package shared;
 public record WorldSnapshot(
         int width,
         int height,
+        // TODO: мб использовать TileType
         char[][] tiles,
         int[][] colors, // Новый массив для цветов (ANSI коды)
         Position playerPos

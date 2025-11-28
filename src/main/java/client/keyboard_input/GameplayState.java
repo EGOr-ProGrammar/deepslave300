@@ -1,5 +1,6 @@
 package client.keyboard_input;
 
+import client.AnsiRenderer;
 import client.ClientConnection;
 import shared.InputAction;
 
@@ -9,6 +10,12 @@ public class GameplayState implements InputState {
     public void handleInput(int key, ClientConnection connection, InputManager context) {
         InputAction action = null;
         char c = (char) key;
+
+        // Ctrl+L (код 12) - принудительная перерисовка
+        if (key == 12) {
+            AnsiRenderer.forceRedraw();
+            return;
+        }
 
         switch (Character.toLowerCase(c)) {
             case 'w': action = InputAction.MOVE_UP; break;
