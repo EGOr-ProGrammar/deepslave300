@@ -5,19 +5,25 @@ import shared.WorldSnapshot;
 
 public class ClientMain {
     public static void main(String[] args) throws Exception {
-        ClientGameState state = new ClientGameState();
-        ClientConnection connection = new ClientConnection("localhost", 4000, state);
-        connection.start();
+        AnsiRenderer.init();
 
-        InputManager inputManager = new InputManager(connection);
-        inputManager.start();
+        try {
+            ClientGameState state = new ClientGameState();
+            ClientConnection connection = new ClientConnection("localhost", 4000, state);
+            connection.start();
 
-        while (true) {
-            WorldSnapshot snapshot = state.snapshot;
-            if (snapshot != null) {
-                AnsiRenderer.render(snapshot);
+            InputManager inputManager = new InputManager(connection);
+            inputManager.start();
+
+            while (true) {
+                WorldSnapshot snapshot = state.snapshot;
+                if (snapshot != null) {
+                    AnsiRenderer.render(snapshot);
+                }
+                Thread.sleep(50);
             }
-            Thread.sleep(100);
+        } finally {
+            AnsiRenderer.cleanup();
         }
     }
 }
