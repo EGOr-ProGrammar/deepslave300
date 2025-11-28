@@ -5,8 +5,12 @@ package server.model;
  */
 public enum TileType {
     FLOOR('.'),
-    WALL('#');
+    WALL('#'),
+    STAIRS_DOWN('>');
 
     public final char symbol;
-    TileType(char symbol) { this.symbol = symbol; }
+
+    TileType(char symbol) {
+        this.symbol = symbol;
+    }
 }
