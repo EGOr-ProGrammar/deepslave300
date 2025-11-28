@@ -1,29 +1,20 @@
 package server.model;
 
 import shared.Position;
-
 import java.util.Random;
 
-/**
- * Модель игрока.
- * Содержит положение игрока на карте; его цвет, видимый другими игроками.
- */
 public class Player {
     private Position position;
-    private final int colorCode; // ANSI код цвета
+    private final int colorCode;
 
-    // Исключен зеленый (32, 92), тк это цвет локального игрока
+    private int currentLevel = 1;
+    // Координата X карты в сетке уровня
+    private int currentMapGridX = 0;
+    // Координата Y карты в сетке уровня
+    private int currentMapGridY = 0;
+
     private static final int[] ALLOWED_COLORS = {
-            31, // Red
-            33, // Yellow
-            34, // Blue
-            35, // Magenta
-            36, // Cyan
-            91, // Bright Red
-            93, // Bright Yellow
-            94, // Bright Blue
-            95, // Bright Magenta
-            96  // Bright Cyan
+            31, 33, 34, 35, 36, 91, 93, 94, 95, 96
     };
 
     public Player(Position startPos) {
@@ -31,16 +22,14 @@ public class Player {
         this.colorCode = ALLOWED_COLORS[new Random().nextInt(ALLOWED_COLORS.length)];
     }
 
-    public Position getPosition() {
-        return position;
-    }
+    public int getCurrentLevel() { return currentLevel; }
+    public int getMapX() { return currentMapGridX; }
+    public int getMapY() { return currentMapGridY; }
 
-    public void setPosition(Position position) {
-        this.position = position;
-    }
+    public void setLevel(int level) { this.currentLevel = level; }
+    public void setMapGrid(int x, int y) { this.currentMapGridX = x; this.currentMapGridY = y; }
 
-    public int getColorCode() {
-        return colorCode;
-    }
+    public Position getPosition() { return position; }
+    public void setPosition(Position position) { this.position = position; }
+    public int getColorCode() { return colorCode; }
 }
-
