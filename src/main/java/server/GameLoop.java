@@ -1,28 +1,25 @@
 package server;
 
-import shared.WorldSnapshot;
+public class GameLoop implements Runnable {
+    private final TcpServer server;
 
-public class GameLoop {
-    public static void run(GameWorld world, ClientHandler handler) {
-        final int TPS = 10; // 10 тиков в секунду
-        final long OPTIMAL_TIME = 1_000_000_000L / TPS;
-        long lastTime = System.nanoTime();
+    public GameLoop(TcpServer server) {
+        this.server = server;
+    }
 
+    @Override
+    public void run() {
         while (true) {
-            long now = System.nanoTime();
-            long delta = now - lastTime;
-            if (delta < OPTIMAL_TIME) {
-                try {
-                    long sleepMs = (OPTIMAL_TIME - delta) / 1_000_000L;
-                    if (sleepMs > 0) Thread.sleep(sleepMs);
-                } catch (InterruptedException ignored) {}
-                continue;
-            }
-            lastTime = now;
+            // TODO: обновлять состояние мира, когда добавлю мобов. Типа такого:
+            // world.tick();
 
-            WorldSnapshot snapshot = world.snapshot();
-            handler.sendSnapshot(snapshot);
+            server.broadcastState();
+
+            try {
+                Thread.sleep(50); // 20 TPS (Тиков в секунду)
+            } catch (InterruptedException e) {
+                break;
+            }
         }
     }
 }
-
