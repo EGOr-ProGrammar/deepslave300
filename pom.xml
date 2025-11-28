@@ -36,4 +36,12 @@
             </plugin>
         </plugins>
     </build>
+    <dependencies>
+        <!-- JLine для работы с терминалом в Raw-режиме -->
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline</artifactId>
+            <version>3.30.6</version>
+        </dependency>
+    </dependencies>
 </project>
