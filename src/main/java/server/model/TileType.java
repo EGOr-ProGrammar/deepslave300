@@ -1,4 +1,4 @@
-package server;
+package server.model;
 
 /**
  * Тип ячейки игрового мира.

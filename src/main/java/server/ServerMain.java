@@ -1,5 +1,7 @@
 package server;
 
+import server.controller.GameWorld;
+
 public class ServerMain {
     public static void main(String[] args) throws Exception {
         GameWorld world = new GameWorld();

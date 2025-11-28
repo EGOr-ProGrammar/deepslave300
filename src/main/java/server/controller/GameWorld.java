@@ -1,6 +1,7 @@
-package server;
+package server.controller;
 
 import server.model.Player;
+import server.model.TileType;
 import shared.InputAction;
 import shared.Position;
 import shared.WorldSnapshot;

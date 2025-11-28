@@ -1,4 +1,4 @@
-package server;
+package server.controller;
 
 import shared.InputAction;
 import shared.WorldSnapshot;

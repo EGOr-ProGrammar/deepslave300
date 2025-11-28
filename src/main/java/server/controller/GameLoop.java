@@ -1,4 +1,6 @@
-package server;
+package server.controller;
+
+import server.TcpServer;
 
 public class GameLoop implements Runnable {
     private final TcpServer server;
