@@ -11,5 +11,6 @@ public record WorldSnapshot(
         int width,
         int height,
         char[][] tiles,
+        int[][] colors, // Новый массив для цветов (ANSI коды)
         Position playerPos
 ) {}
