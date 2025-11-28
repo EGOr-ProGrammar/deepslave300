@@ -1,0 +1,56 @@
+package server.generate_map;
+
+public class DungeonLevel {
+    private final int levelNumber; // 1..10
+    private final DungeonMap[][] maps;
+    private final int gridWidth;
+    private final int gridHeight;
+
+    public DungeonLevel(int levelNumber) {
+        this.levelNumber = levelNumber;
+
+        // Определить размер сетки (2x2, 3x3, 4x4)
+        if (levelNumber == 10) {
+            this.gridWidth = 1;
+            this.gridHeight = 2; // Босс-уровень вытянутый
+        } else if (levelNumber >= 7) {
+            this.gridWidth = 4;
+            this.gridHeight = 4;
+        } else if (levelNumber >= 4) {
+            this.gridWidth = 3;
+            this.gridHeight = 3;
+        } else {
+            this.gridWidth = 2;
+            this.gridHeight = 2;
+        }
+
+        this.maps = new DungeonMap[gridHeight][gridWidth];
+        generateLevel();
+    }
+
+    private void generateLevel() {
+        // Создаем карты
+        for (int y = 0; y < gridHeight; y++) {
+            for (int x = 0; x < gridWidth; x++) {
+                maps[y][x] = new DungeonMap(x, y);
+            }
+        }
+
+        // TODO: в будущем будет босс на 10 уровнем, после победы над которым игра прекращается
+        // Если это обычный уровень, добавить лестницу
+        // Но лестница появляется ПОСЛЕ убийства босса.
+        // Пока просто оставить её для теста
+        if (levelNumber < 10) {
+            // Если лестница должна быть сразу
+            // spawnStairs();
+        }
+    }
+
+    public DungeonMap getMap(int gridX, int gridY) {
+        if (gridX < 0 || gridX >= gridWidth || gridY < 0 || gridY >= gridHeight) return null;
+        return maps[gridY][gridX];
+    }
+
+    public int getGridWidth() { return gridWidth; }
+    public int getGridHeight() { return gridHeight; }
+}
