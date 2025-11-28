@@ -1,6 +1,6 @@
 package client;
 
-import client.read.InputReader;
+import client.read.InputManager;
 import shared.WorldSnapshot;
 
 public class ClientMain {
@@ -8,15 +8,16 @@ public class ClientMain {
         ClientGameState state = new ClientGameState();
         ClientConnection connection = new ClientConnection("localhost", 4000, state);
         connection.start();
-        InputReader.start(connection);
 
-        // TODO: сделать что-то с Exception
+        InputManager inputManager = new InputManager(connection);
+        inputManager.start();
+
         while (true) {
             WorldSnapshot snapshot = state.snapshot;
             if (snapshot != null) {
                 AnsiRenderer.render(snapshot);
             }
-            Thread.sleep(100); // 10 FPS рендера
+            Thread.sleep(100);
         }
     }
 }

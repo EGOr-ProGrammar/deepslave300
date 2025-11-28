@@ -8,7 +8,6 @@ public class GameLoop {
         final long OPTIMAL_TIME = 1_000_000_000L / TPS;
         long lastTime = System.nanoTime();
 
-        // TODO: сделать что-то с Exception
         while (true) {
             long now = System.nanoTime();
             long delta = now - lastTime;

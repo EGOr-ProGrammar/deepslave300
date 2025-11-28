@@ -27,7 +27,7 @@ public class ClientHandler {
                 world.applyInput(action);
             }
         } catch (IOException e) {
-            // клиент отвалился — пока просто выходим
+            // клиент отвалился - выход
         }
     }
 
@@ -44,7 +44,7 @@ public class ClientHandler {
             out.writeInt(snapshot.playerPos().y());
             out.flush();
         } catch (IOException e) {
-            // ошибка записи — можно завершать игру
+            // ошибка записи - можно завершать игру
         }
     }
 }
