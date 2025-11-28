@@ -32,14 +32,18 @@ public class ClientConnection {
                 int w = inputStream.readInt();
                 int h = inputStream.readInt();
                 char[][] tiles = new char[h][w];
+                int[][] colors = new int[h][w];
+
                 for (int y = 0; y < h; y++) {
                     for (int x = 0; x < w; x++) {
                         tiles[y][x] = inputStream.readChar();
+                        colors[y][x] = inputStream.readInt();
                     }
                 }
+
                 int px = inputStream.readInt();
                 int py = inputStream.readInt();
-                state.snapshot = new WorldSnapshot(w, h, tiles, new Position(px, py));
+                state.snapshot = new WorldSnapshot(w, h, tiles, colors, new Position(px, py));
             }
         } catch (IOException e) {
             // сервер отвалился
