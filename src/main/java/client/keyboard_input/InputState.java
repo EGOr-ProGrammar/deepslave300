@@ -1,4 +1,4 @@
-package client.read;
+package client.keyboard_input;
 
 import client.ClientConnection;
 

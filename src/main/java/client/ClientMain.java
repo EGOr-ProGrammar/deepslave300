@@ -1,6 +1,6 @@
 package client;
 
-import client.read.InputManager;
+import client.keyboard_input.InputManager;
 import shared.WorldSnapshot;
 
 public class ClientMain {
