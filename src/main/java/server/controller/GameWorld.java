@@ -67,7 +67,7 @@ public class GameWorld {
                 if (tile != TileType.WALL) {
                     if (nextPos.equals(targetPlayer.getPosition())) {
                         targetPlayer.takeDamage(enemy.getAttack());
-                        System.out.println("⚔ Enemy hit player for " + enemy.getAttack() + " dmg");
+                        System.out.println("Enemy hit player for " + enemy.getAttack() + " dmg");
                         if (targetPlayer.getHp() <= 0) {
                             respawnPlayer(targetPlayer);
                         }

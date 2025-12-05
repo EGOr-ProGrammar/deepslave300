@@ -26,7 +26,7 @@ public class CombatSystem {
                     enemy.getPosition().equals(targetPos)) {
 
                 enemy.takeDamage(player.getAttack());
-                System.out.println("💥 Player hit enemy for " + player.getAttack() + " dmg");
+                System.out.println("Player hit enemy for " + player.getAttack() + " dmg");
                 return true;
             }
         }

@@ -26,7 +26,7 @@ public class LootPile {
      */
     public void applyTo(Player player) {
         player.addGold(this.goldAmount);
-        System.out.println("💰 Player picked up " + this.goldAmount + " gold");
+        System.out.println("Player picked up " + this.goldAmount + " gold");
     }
 
     public Position getPosition() { return position; }
