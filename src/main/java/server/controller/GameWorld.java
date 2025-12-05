@@ -32,9 +32,16 @@ public class GameWorld {
     }
 
     public synchronized void tick() {
+        long now = System.currentTimeMillis();
+
         // ИИ мобов: преследование и атака
         for (EnemyNpc enemy : enemies.values()) {
             if (!enemy.isAlive()) continue;
+
+            // Cooldown между действиями
+            if (now - enemy.getLastActionTime() < 500) {
+                continue;
+            }
 
             Player targetPlayer = null;
             int minDistance = Integer.MAX_VALUE;
@@ -43,7 +50,6 @@ public class GameWorld {
                 if (p.getCurrentLevel() == enemy.getCurrentLevel() &&
                         p.getMapX() == enemy.getMapX() &&
                         p.getMapY() == enemy.getMapY()) {
-
                     int dist = enemy.distanceTo(p.getPosition());
                     if (dist < minDistance && enemy.isInAggroRange(p.getPosition())) {
                         minDistance = dist;
@@ -62,13 +68,13 @@ public class GameWorld {
                     if (nextPos.equals(targetPlayer.getPosition())) {
                         targetPlayer.takeDamage(enemy.getAttack());
                         System.out.println("⚔ Enemy hit player for " + enemy.getAttack() + " dmg");
-
                         if (targetPlayer.getHp() <= 0) {
                             respawnPlayer(targetPlayer);
                         }
                     } else {
                         enemy.setPosition(nextPos);
                     }
+                    enemy.setLastActionTime(now);
                 }
             }
         }
@@ -79,7 +85,7 @@ public class GameWorld {
             EnemyNpc enemy = it.next().getValue();
             if (!enemy.isAlive()) {
                 LootPile loot = new LootPile(enemy.getPosition(),
-                        3 + new java.util.Random().nextInt(3));
+                        3 + new Random().nextInt(3));
                 loot.setLevel(enemy.getCurrentLevel());
                 loot.setMapGrid(enemy.getMapX(), enemy.getMapY());
                 lootPiles.add(loot);
@@ -88,18 +94,14 @@ public class GameWorld {
             }
         }
 
-        // Автоподбор лута
+        // TODO: исправить ответсвенность. Лут не должен сам себя подымать
+        // Автоподбор лута — лут сам проверяет и применяется
         for (Player p : players.values()) {
             Iterator<LootPile> lootIt = lootPiles.iterator();
             while (lootIt.hasNext()) {
                 LootPile loot = lootIt.next();
-                if (p.getCurrentLevel() == loot.getLevel() &&
-                        p.getMapX() == loot.getMapX() &&
-                        p.getMapY() == loot.getMapY() &&
-                        p.getPosition().equals(loot.getPosition())) {
-
-                    p.addGold(loot.getGoldAmount());
-                    System.out.println("💰 Player picked up " + loot.getGoldAmount() + " gold");
+                if (loot.canBePickedBy(p)) {
+                    loot.applyTo(p);
                     lootIt.remove();
                 }
             }
@@ -168,11 +170,10 @@ public class GameWorld {
         Player player = players.get(playerId);
         if (player == null) return;
 
-        // Получить текущую карту игрока
         DungeonLevel level = dungeonManager.getLevel(player.getCurrentLevel());
         DungeonMap currentMap = level.getMap(player.getMapX(), player.getMapY());
-
         Position currentPos = player.getPosition();
+
         int nx = currentPos.x();
         int ny = currentPos.y();
 
@@ -181,23 +182,20 @@ public class GameWorld {
             case MOVE_DOWN -> ny++;
             case MOVE_LEFT -> nx--;
             case MOVE_RIGHT -> nx++;
+            default -> { return; }
         }
 
-        // Логика перехода между картами
+        // Переходы между картами
         if (nx < 0) {
-            // Идем влево
             if (trySwitchMap(player, level, -1, 0, DungeonMap.WIDTH - 2, ny)) return;
-            nx = 0; // Если перехода нет, упереться в стену
+            nx = 0;
         } else if (nx >= DungeonMap.WIDTH) {
-            // Идем вправо
             if (trySwitchMap(player, level, 1, 0, 1, ny)) return;
             nx = DungeonMap.WIDTH - 1;
         } else if (ny < 0) {
-            // Идем вверх
             if (trySwitchMap(player, level, 0, -1, nx, DungeonMap.HEIGHT - 2)) return;
             ny = 0;
         } else if (ny >= DungeonMap.HEIGHT) {
-            // Идем вниз
             if (trySwitchMap(player, level, 0, 1, nx, 1)) return;
             ny = DungeonMap.HEIGHT - 1;
         }
@@ -205,37 +203,34 @@ public class GameWorld {
         TileType tile = currentMap.getTile(nx, ny);
         if (tile == TileType.WALL) return;
 
-        // Проверка коллизий с игроками
-        for (Player other : players.values()) {
-            if (other != player &&
-                    other.getCurrentLevel() == player.getCurrentLevel() &&
-                    other.getMapX() == player.getMapX() &&
-                    other.getMapY() == player.getMapY() &&
-                    other.getPosition().x() == nx &&
-                    other.getPosition().y() == ny) {
-                return;
-            }
+        Position targetPos = new Position(nx, ny);
+
+        // Атака
+        if (CombatSystem.tryAttackEnemy(player, targetPos, enemies)) {
+            return;
         }
 
-        // Проверка спуска вниз
+        // Коллизии с игроками
+        if (CombatSystem.isPlayerAt(targetPos, player, players)) {
+            return;
+        }
+
+        // Спуск вниз
         if (tile == TileType.STAIRS_DOWN) {
             int nextLevel = player.getCurrentLevel() + 1;
             DungeonLevel newLevel = dungeonManager.getLevel(nextLevel);
             DungeonMap newMap = newLevel.getMap(0, 0);
             Position newSpawn = newMap.getRandomFloorPosition();
-
             player.setLevel(nextLevel);
             player.setMapGrid(0, 0);
             player.setPosition(newSpawn);
-
-            // Спавн мобов на новом уровне
             spawnEnemiesOnMap(newLevel, 0, 0, nextLevel);
-
             System.out.println("✓ Player " + playerId + " descended to level " + nextLevel);
             return;
         }
 
-        player.setPosition(new Position(nx, ny));
+        // Движение
+        player.setPosition(targetPos);
     }
 
     private boolean trySwitchMap(Player player, DungeonLevel level, int dx, int dy, int newX, int newY) {
