@@ -8,7 +8,7 @@ import java.util.Random;
 public class DungeonMap {
     // Размеры карты без стен
     public static final int WIDTH = 80;
-    public static final int HEIGHT = 40;
+    public static final int HEIGHT = 30;
     private final TileType[][] tiles;
     private final long seed;
 
@@ -19,7 +19,6 @@ public class DungeonMap {
     }
 
     private void generate() {
-        // Используем seed для детерминированной генерации
         Random rand = new Random(seed);
 
         // Шум
@@ -37,12 +36,13 @@ public class DungeonMap {
             tiles[y][0] = TileType.WALL;
             tiles[y][WIDTH - 1] = TileType.WALL;
         }
+
         for (int x = 0; x < WIDTH; x++) {
             tiles[0][x] = TileType.WALL;
             tiles[HEIGHT - 1][x] = TileType.WALL;
         }
 
-        // Ворота
+        // Ворота создаём ПОСЛЕ установки стен
         createGates();
     }
 
