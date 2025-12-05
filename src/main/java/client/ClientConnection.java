@@ -1,24 +1,23 @@
 package client;
 
 import shared.InputAction;
-import shared.Position;
 import shared.WorldSnapshot;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 
 public class ClientConnection {
     private final Socket socket;
-    private final DataInputStream inputStream;
+    private final ObjectInputStream inputStream;  // ← изменено
     private final DataOutputStream outputStream;
     private final ClientGameState state;
 
     public ClientConnection(String host, int port, ClientGameState state) throws IOException {
         this.state = state;
         this.socket = new Socket(host, port);
-        this.inputStream = new DataInputStream(socket.getInputStream());
+
+        // Нужно ObjectInputStream создать после того, как сервер отправил заголовок
+        this.inputStream = new ObjectInputStream(socket.getInputStream());
         this.outputStream = new DataOutputStream(socket.getOutputStream());
     }
 
@@ -29,24 +28,11 @@ public class ClientConnection {
     private void readLoop() {
         try {
             while (true) {
-                int w = inputStream.readInt();
-                int h = inputStream.readInt();
-                char[][] tiles = new char[h][w];
-                int[][] colors = new int[h][w];
-
-                for (int y = 0; y < h; y++) {
-                    for (int x = 0; x < w; x++) {
-                        tiles[y][x] = inputStream.readChar();
-                        colors[y][x] = inputStream.readInt();
-                    }
-                }
-
-                int px = inputStream.readInt();
-                int py = inputStream.readInt();
-                state.snapshot = new WorldSnapshot(w, h, tiles, colors, new Position(px, py));
+                WorldSnapshot snapshot = (WorldSnapshot) inputStream.readObject();
+                state.snapshot = snapshot;  // ← получаем ВСЕ поля
             }
-        } catch (IOException e) {
-            // сервер отвалился
+        } catch (Exception e) {
+            System.err.println("Connection lost: " + e.getMessage());
         }
     }
 
@@ -55,8 +41,7 @@ public class ClientConnection {
             outputStream.writeInt(action.ordinal());
             outputStream.flush();
         } catch (IOException e) {
-            // соединение упало
+            System.err.println("Failed to send action: " + e.getMessage());
         }
     }
 }
-
