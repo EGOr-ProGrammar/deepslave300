@@ -48,9 +48,16 @@ public class EnemyNpc {
         this.currentMapGridX = 0;
         this.currentMapGridY = 0;
     }
-    public static EnemyNpc createBasicMob(Position position) {
-        return new EnemyNpc(position, 10, 3, 5, 'M');
+
+    // TODO: на других уровня поменять букву
+    public static EnemyNpc createBasicMob(Position position, int level) {
+        int maxHp = 10 + (level - 1) * 5;
+        int attack = 3 + (level - 1) * 2;
+        int aggroRange = 5;
+        char symbol = 'M';
+        return new EnemyNpc(position, maxHp, attack, aggroRange, symbol);
     }
+
 
     /**
      * Нанести урон мобу. Если HP <= 0, моб считается мертвым.
@@ -103,8 +110,6 @@ public class EnemyNpc {
         // Уже на месте
         return this.position;
     }
-
-
 
     public UUID getId() { return id; }
     public Position getPosition() { return position; }

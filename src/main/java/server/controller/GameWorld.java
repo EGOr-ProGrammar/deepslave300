@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class GameWorld {
     private final Map<UUID, EnemyNpc> enemies = new ConcurrentHashMap<>();
+    private final Set<String> spawnedMaps = Collections.synchronizedSet(new HashSet<>());
     private final List<LootPile> lootPiles = new ArrayList<>();
     private final DungeonManager dungeonManager;
     private final Map<String, Player> players = new ConcurrentHashMap<>();
@@ -136,28 +137,37 @@ public class GameWorld {
         newPlayer.setMapGrid(startMapX, startMapY);
 
         players.put(playerId, newPlayer);
-        System.out.println("✓ Player added: " + playerId + " at " + spawnPos);
+        System.out.println("Player added: " + playerId + " at " + spawnPos);
         spawnEnemiesOnMap(level1, startMapX, startMapY, 1);
     }
 
     private void spawnEnemiesOnMap(DungeonLevel level, int mapX, int mapY, int levelNum) {
+        String key = levelNum + "-" + mapX + "-" + mapY;
+        if (spawnedMaps.contains(key)) {
+            // На этой карте уже спавнили врагов - выход
+            return;
+        }
+
         DungeonMap map = level.getMap(mapX, mapY);
         if (map == null) return;
 
         int baseMobCount = 2 + (levelNum - 1) + new Random().nextInt(3);
-        int mobCount = (int)(baseMobCount * MOB_DENSITY);
+        int mobCount = (int) (baseMobCount * MOB_DENSITY);
         mobCount = Math.min(mobCount, 300);
 
         for (int i = 0; i < mobCount; i++) {
             Position spawnPos = map.getRandomFloorPosition();
-            EnemyNpc mob = EnemyNpc.createBasicMob(spawnPos);
+            EnemyNpc mob = EnemyNpc.createBasicMob(spawnPos, levelNum);
             mob.setLevel(levelNum);
             mob.setMapGrid(mapX, mapY);
             enemies.put(mob.getId(), mob);
         }
 
-        System.out.println("✓ Spawned " + mobCount + " enemies on level " + levelNum);
+        spawnedMaps.add(key);
+        System.out.println("Spawned " + mobCount + " enemies on level " + levelNum +
+                " at map (" + mapX + "," + mapY + ")");
     }
+
 
     public void removePlayer(ClientHandler client) {
         String playerId = client.getPlayerId();
@@ -237,14 +247,19 @@ public class GameWorld {
         int newGridX = player.getMapX() + dx;
         int newGridY = player.getMapY() + dy;
 
-        // Существует ли соседняя карта
-        if (level.getMap(newGridX, newGridY) != null) {
+        DungeonMap newMap = level.getMap(newGridX, newGridY);
+        if (newMap != null) {
             player.setMapGrid(newGridX, newGridY);
             player.setPosition(new Position(newX, newY));
+
+            // Спавн врагов, если на этой карте их ещё не было
+            spawnEnemiesOnMap(level, newGridX, newGridY, player.getCurrentLevel());
             return true;
         }
+
         return false;
     }
+
 
     public synchronized WorldSnapshot snapshot(ClientHandler forClient) {
         String myPlayerId = forClient.getPlayerId();
