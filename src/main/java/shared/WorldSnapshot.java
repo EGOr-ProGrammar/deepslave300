@@ -1,17 +1,36 @@
 package shared;
 
+import java.util.Map;
+
 /**
- * Содержит информацию об этаже уровня(мире)
- * @param width - ширина этажа по X
- * @param height - высота этажа по Y
- * @param tiles - тип ячейки этажа. Содержит ячейки типа TileType
- * @param playerPos - координаты (x,y) текущего положения игрока на этаже
+ * Снимок состояния игрового мира для передачи клиенту.
+ * Содержит всю информацию, необходимую для отрисовки текущего кадра.
+ *
+ * @param width - ширина уровня по X
+ * @param height - высота уровня по Y
+ * @param tiles - тип ячейки уровня (символы для отображения)
+ * @param colors - ANSI коды цветов для каждой ячейки
+ * @param playerPos - текущая позиция игрока
+ * @param currentDepth - текущая глубина подземелья
+ * @param timestamp - время создания снапшота (для синхронизации)
+ * @param playersData - данные всех игроков на уровне (для мультиплеера)
  */
 public record WorldSnapshot(
         int width,
         int height,
-        // TODO: мб использовать TileType
         char[][] tiles,
-        int[][] colors, // Новый массив для цветов (ANSI коды)
-        Position playerPos
-) {}
+        int[][] colors,
+        Position playerPos,
+        int currentDepth,
+        long timestamp,
+        Map<String, PlayerData> playersData
+) {
+    /**
+     * Упрощенный конструктор для обратной совместимости
+     */
+    public WorldSnapshot(int width, int height, char[][] tiles,
+                         int[][] colors, Position playerPos) {
+        this(width, height, tiles, colors, playerPos, 1,
+                System.currentTimeMillis(), Map.of());
+    }
+}
