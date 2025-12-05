@@ -6,14 +6,24 @@ import shared.Position;
 import java.util.Random;
 
 public class DungeonMap {
-    // Размеры карты без стен
     public static final int WIDTH = 80;
     public static final int HEIGHT = 30;
+
     private final TileType[][] tiles;
     private final long seed;
 
-    public DungeonMap(int idX, int idY, long seed) {
+    // Новые поля для хранения информации о соседях
+    private final boolean hasNorth;
+    private final boolean hasSouth;
+    private final boolean hasWest;
+    private final boolean hasEast;
+
+    public DungeonMap(int idX, int idY, long seed, boolean hasNorth, boolean hasSouth, boolean hasWest, boolean hasEast) {
         this.seed = seed;
+        this.hasNorth = hasNorth;
+        this.hasSouth = hasSouth;
+        this.hasWest = hasWest;
+        this.hasEast = hasEast;
         this.tiles = new TileType[HEIGHT][WIDTH];
         generate();
     }
@@ -42,20 +52,89 @@ public class DungeonMap {
             tiles[HEIGHT - 1][x] = TileType.WALL;
         }
 
-        // Ворота создаём ПОСЛЕ установки стен
         createGates();
+        createGateCorridors();
     }
 
     private void createGates() {
+        int cx = WIDTH / 2;  // 40
+        int cy = HEIGHT / 2; // 15
+
+        // Проходы шириной 5 клеток только там, где есть соседи
+        for (int i = -2; i <= 2; i++) {
+            // Север (верх, y=0)
+            if (hasNorth && cx + i >= 0 && cx + i < WIDTH) {
+                tiles[0][cx + i] = TileType.FLOOR;
+            }
+
+            // Юг (низ, y=HEIGHT-1)
+            if (hasSouth && cx + i >= 0 && cx + i < WIDTH) {
+                tiles[HEIGHT - 1][cx + i] = TileType.FLOOR;
+            }
+
+            // Запад (лево, x=0)
+            if (hasWest && cy + i >= 0 && cy + i < HEIGHT) {
+                tiles[cy + i][0] = TileType.FLOOR;
+            }
+
+            // Восток (право, x=WIDTH-1)
+            if (hasEast && cy + i >= 0 && cy + i < HEIGHT) {
+                tiles[cy + i][WIDTH - 1] = TileType.FLOOR;
+            }
+        }
+    }
+
+    private void createGateCorridors() {
         int cx = WIDTH / 2;
         int cy = HEIGHT / 2;
+        int corridorDepth = 5; // Глубина коридора от прохода
 
-        // Безопасное создание проходов
-        for (int i = -2; i <= 2; i++) {
-            if (cx + i >= 0 && cx + i < WIDTH) tiles[0][cx + i] = TileType.FLOOR; // Север
-            if (cx + i >= 0 && cx + i < WIDTH) tiles[HEIGHT - 1][cx + i] = TileType.FLOOR; // Юг
-            if (cy + i >= 0 && cy + i < HEIGHT) tiles[cy + i][0] = TileType.FLOOR; // Запад
-            if (cy + i >= 0 && cy + i < HEIGHT) tiles[cy + i][WIDTH - 1] = TileType.FLOOR; // Восток
+        // Север (вход сверху, y=0, коридор идёт вниз)
+        if (hasNorth) {
+            for (int i = -2; i <= 2; i++) {
+                int gateX = cx + i;
+                if (gateX >= 0 && gateX < WIDTH) {
+                    for (int y = 0; y < corridorDepth && y < HEIGHT; y++) {
+                        tiles[y][gateX] = TileType.FLOOR;
+                    }
+                }
+            }
+        }
+
+        // Юг (вход снизу, y=HEIGHT-1, коридор идёт вверх)
+        if (hasSouth) {
+            for (int i = -2; i <= 2; i++) {
+                int gateX = cx + i;
+                if (gateX >= 0 && gateX < WIDTH) {
+                    for (int y = HEIGHT - 1; y >= HEIGHT - corridorDepth && y >= 0; y--) {
+                        tiles[y][gateX] = TileType.FLOOR;
+                    }
+                }
+            }
+        }
+
+        // Запад (вход слева, x=0, коридор идёт вправо)
+        if (hasWest) {
+            for (int i = -2; i <= 2; i++) {
+                int gateY = cy + i;
+                if (gateY >= 0 && gateY < HEIGHT) {
+                    for (int x = 0; x < corridorDepth && x < WIDTH; x++) {
+                        tiles[gateY][x] = TileType.FLOOR;
+                    }
+                }
+            }
+        }
+
+        // Восток (вход справа, x=WIDTH-1, коридор идёт влево)
+        if (hasEast) {
+            for (int i = -2; i <= 2; i++) {
+                int gateY = cy + i;
+                if (gateY >= 0 && gateY < HEIGHT) {
+                    for (int x = WIDTH - 1; x >= WIDTH - corridorDepth && x >= 0; x--) {
+                        tiles[gateY][x] = TileType.FLOOR;
+                    }
+                }
+            }
         }
     }
 
@@ -93,12 +172,12 @@ public class DungeonMap {
 
     public Position getRandomFloorPosition() {
         Random rand = new Random();
-        for (int i = 0; i < 1000; i++) { // Защита от бесконечного цикла
+        for (int i = 0; i < 1000; i++) {
             int x = rand.nextInt(WIDTH - 2) + 1;
             int y = rand.nextInt(HEIGHT - 2) + 1;
             if (tiles[y][x] == TileType.FLOOR) return new Position(x, y);
         }
-        return new Position(WIDTH/2, HEIGHT/2); // Fallback
+        return new Position(WIDTH/2, HEIGHT/2);
     }
 
     public long getSeed() {

@@ -36,11 +36,18 @@ public class DungeonLevel {
             for (int x = 0; x < gridWidth; x++) {
                 // Каждая карта получает уникальный seed на основе позиции
                 long mapSeed = seed + (y * gridWidth + x);
-                maps[y][x] = new DungeonMap(x, y, mapSeed);
+
+                // Определяем наличие соседей
+                boolean hasNorth = (y > 0);
+                boolean hasSouth = (y < gridHeight - 1);
+                boolean hasWest = (x > 0);
+                boolean hasEast = (x < gridWidth - 1);
+
+                maps[y][x] = new DungeonMap(x, y, mapSeed, hasNorth, hasSouth, hasWest, hasEast);
             }
         }
 
-        // TODO: в будущем будет босс на 10 уровнем
+        // TODO: в будущем будет босс на 10 уровне
         if (levelNumber < 10) {
             // Если лестница должна быть сразу
             // spawnStairs();

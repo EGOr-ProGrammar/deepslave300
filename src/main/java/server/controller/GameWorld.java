@@ -187,29 +187,36 @@ public class GameWorld {
         int nx = currentPos.x();
         int ny = currentPos.y();
 
+        // Сначала вычисляем НАПРАВЛЕНИЕ движения
+        int dx = 0, dy = 0;
         switch (action) {
-            case MOVE_UP -> ny--;
-            case MOVE_DOWN -> ny++;
-            case MOVE_LEFT -> nx--;
-            case MOVE_RIGHT -> nx++;
+            case MOVE_UP -> { dy = -1; ny--; }
+            case MOVE_DOWN -> { dy = 1; ny++; }
+            case MOVE_LEFT -> { dx = -1; nx--; }
+            case MOVE_RIGHT -> { dx = 1; nx++; }
             default -> { return; }
         }
 
-        // Переходы между картами
+        // Переходы между картами — проверяем, если игрок у границы и идёт дальше
         if (nx < 0) {
-            if (trySwitchMap(player, level, -1, 0, DungeonMap.WIDTH - 2, ny)) return;
-            nx = 0;
+            // Уходим влево — появляемся справа на новой карте
+            if (trySwitchMap(player, level, -1, 0, DungeonMap.WIDTH - 1, currentPos.y())) return;
+            return; // Если переход не удался — блокируем движение
         } else if (nx >= DungeonMap.WIDTH) {
-            if (trySwitchMap(player, level, 1, 0, 1, ny)) return;
-            nx = DungeonMap.WIDTH - 1;
+            // Уходим вправо — появляемся слева на новой карте
+            if (trySwitchMap(player, level, 1, 0, 0, currentPos.y())) return;
+            return;
         } else if (ny < 0) {
-            if (trySwitchMap(player, level, 0, -1, nx, DungeonMap.HEIGHT - 2)) return;
-            ny = 0;
+            // Уходим вверх — появляемся внизу на новой карте
+            if (trySwitchMap(player, level, 0, -1, currentPos.x(), DungeonMap.HEIGHT - 1)) return;
+            return;
         } else if (ny >= DungeonMap.HEIGHT) {
-            if (trySwitchMap(player, level, 0, 1, nx, 1)) return;
-            ny = DungeonMap.HEIGHT - 1;
+            // Уходим вниз — появляемся вверху на новой карте
+            if (trySwitchMap(player, level, 0, 1, currentPos.x(), 0)) return;
+            return;
         }
 
+        // Проверка стен ВНУТРИ текущей карты
         TileType tile = currentMap.getTile(nx, ny);
         if (tile == TileType.WALL) return;
 
@@ -249,17 +256,56 @@ public class GameWorld {
 
         DungeonMap newMap = level.getMap(newGridX, newGridY);
         if (newMap != null) {
+            // Проверяем, что целевая позиция проходима
+            Position targetPos = new Position(newX, newY);
+
+            if (newMap.getTile(newX, newY) == TileType.WALL) {
+                // Ищем ближайшую проходимую клетку
+                targetPos = findNearestFloor(newMap, newX, newY, dx, dy);
+                if (targetPos == null) {
+                    // Не нашли проходимую клетку — отменяем переход
+                    return false;
+                }
+            }
+
             player.setMapGrid(newGridX, newGridY);
-            player.setPosition(new Position(newX, newY));
+            player.setPosition(targetPos);
 
             // Спавн врагов, если на этой карте их ещё не было
             spawnEnemiesOnMap(level, newGridX, newGridY, player.getCurrentLevel());
+
             return true;
         }
 
         return false;
     }
 
+    private Position findNearestFloor(DungeonMap map, int startX, int startY, int dx, int dy) {
+        // Если двигались по X (влево/вправо)
+        if (dx != 0) {
+            // Поиск по X в направлении внутрь карты
+            int searchDir = -dx; // Если пришли слева (dx=-1), поиск вправо (searchDir=1)
+            for (int x = startX; x >= 0 && x < DungeonMap.WIDTH; x += searchDir) {
+                if (map.getTile(x, startY) == TileType.FLOOR) {
+                    return new Position(x, startY);
+                }
+            }
+        }
+
+        // Если двигались по Y (вверх/вниз)
+        if (dy != 0) {
+            // Поиск по Y в направлении внутрь карты
+            int searchDir = -dy; // Если пришли сверху (dy=-1), поиск вниз (searchDir=1)
+            for (int y = startY; y >= 0 && y < DungeonMap.HEIGHT; y += searchDir) {
+                if (map.getTile(startX, y) == TileType.FLOOR) {
+                    return new Position(startX, y);
+                }
+            }
+        }
+
+        // Ненаход
+        return null;
+    }
 
     public synchronized WorldSnapshot snapshot(ClientHandler forClient) {
         String myPlayerId = forClient.getPlayerId();
