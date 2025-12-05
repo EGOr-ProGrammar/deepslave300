@@ -10,14 +10,18 @@ public class DungeonMap {
     public static final int WIDTH = 120;
     public static final int HEIGHT = 90;
     private final TileType[][] tiles;
+    private final long seed;
 
-    public DungeonMap(int idX, int idY) {
+    public DungeonMap(int idX, int idY, long seed) {
+        this.seed = seed;
         this.tiles = new TileType[HEIGHT][WIDTH];
         generate();
     }
 
     private void generate() {
-        Random rand = new Random();
+        // Используем seed для детерминированной генерации
+        Random rand = new Random(seed);
+
         // Шум
         for (int y = 0; y < HEIGHT; y++) {
             for (int x = 0; x < WIDTH; x++) {
@@ -95,5 +99,9 @@ public class DungeonMap {
             if (tiles[y][x] == TileType.FLOOR) return new Position(x, y);
         }
         return new Position(WIDTH/2, HEIGHT/2); // Fallback
+    }
+
+    public long getSeed() {
+        return seed;
     }
 }

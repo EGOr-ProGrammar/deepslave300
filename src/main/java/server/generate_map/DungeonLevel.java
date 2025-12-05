@@ -5,9 +5,11 @@ public class DungeonLevel {
     private final DungeonMap[][] maps;
     private final int gridWidth;
     private final int gridHeight;
+    private final long seed;
 
-    public DungeonLevel(int levelNumber) {
+    public DungeonLevel(int levelNumber, long seed) {
         this.levelNumber = levelNumber;
+        this.seed = seed;
 
         // Определить размер сетки (2x2, 3x3, 4x4)
         if (levelNumber == 10) {
@@ -29,17 +31,16 @@ public class DungeonLevel {
     }
 
     private void generateLevel() {
-        // Создаем карты
+        // Создаем карты с уникальными seed для каждой
         for (int y = 0; y < gridHeight; y++) {
             for (int x = 0; x < gridWidth; x++) {
-                maps[y][x] = new DungeonMap(x, y);
+                // Каждая карта получает уникальный seed на основе позиции
+                long mapSeed = seed + (y * gridWidth + x);
+                maps[y][x] = new DungeonMap(x, y, mapSeed);
             }
         }
 
-        // TODO: в будущем будет босс на 10 уровнем, после победы над которым игра прекращается
-        // Если это обычный уровень, добавить лестницу
-        // Но лестница появляется ПОСЛЕ убийства босса.
-        // Пока просто оставить её для теста
+        // TODO: в будущем будет босс на 10 уровнем
         if (levelNumber < 10) {
             // Если лестница должна быть сразу
             // spawnStairs();
@@ -53,4 +54,5 @@ public class DungeonLevel {
 
     public int getGridWidth() { return gridWidth; }
     public int getGridHeight() { return gridHeight; }
+    public long getSeed() { return seed; }
 }
