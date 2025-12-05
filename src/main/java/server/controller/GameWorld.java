@@ -14,16 +14,24 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class GameWorld {
     private final DungeonManager dungeonManager;
-    private final Map<ClientHandler, Player> players = new ConcurrentHashMap<>();
+    private final Map<String, Player> players = new ConcurrentHashMap<>();
+    private final long seed;
+
+    public GameWorld(long seed) {
+        this.seed = seed;
+        this.dungeonManager = new DungeonManager(seed);
+        System.out.println("✓ Game world initialized with seed: " + seed);
+    }
 
     public GameWorld() {
-        this.dungeonManager = new DungeonManager();
+        this(System.currentTimeMillis());
     }
 
     public void addPlayer(ClientHandler client) {
-        // Спавним игрока на 1 уровне в случайной карте
+        String playerId = client.getPlayerId(); // ★ Получаем ID
+
         DungeonLevel level1 = dungeonManager.getLevel(1);
-        int startMapX = 0; // Можно сделать рандомно
+        int startMapX = 0;
         int startMapY = 0;
 
         DungeonMap map = level1.getMap(startMapX, startMapY);
@@ -32,18 +40,22 @@ public class GameWorld {
         Player newPlayer = new Player(spawnPos);
         newPlayer.setMapGrid(startMapX, startMapY);
 
-        players.put(client, newPlayer);
+        players.put(playerId, newPlayer);
+        System.out.println("✓ Player added: " + playerId + " at " + spawnPos);
     }
 
     public void removePlayer(ClientHandler client) {
-        players.remove(client);
+        String playerId = client.getPlayerId();
+        players.remove(playerId);
+        System.out.println("✓ Player removed: " + playerId);
     }
 
     public synchronized void applyInput(ClientHandler client, InputAction action) {
-        Player player = players.get(client);
+        String playerId = client.getPlayerId();
+        Player player = players.get(playerId);
         if (player == null) return;
 
-        // Получаем текущую карту игрока
+        // Получить текущую карту игрока
         DungeonLevel level = dungeonManager.getLevel(player.getCurrentLevel());
         DungeonMap currentMap = level.getMap(player.getMapX(), player.getMapY());
 
@@ -58,7 +70,7 @@ public class GameWorld {
             case MOVE_RIGHT -> nx++;
         }
 
-        // --- ЛОГИКА ПЕРЕХОДА МЕЖДУ КАРТАМИ ---
+        // Логика перехода между картами
         if (nx < 0) {
             // Идем влево
             if (trySwitchMap(player, level, -1, 0, DungeonMap.WIDTH - 2, ny)) return;
@@ -116,7 +128,8 @@ public class GameWorld {
     }
 
     public synchronized WorldSnapshot snapshot(ClientHandler forClient) {
-        Player myPlayer = players.get(forClient);
+        String myPlayerId = forClient.getPlayerId();
+        Player myPlayer = players.get(myPlayerId);
         if (myPlayer == null) return null;
 
         // Текущая карта игрока
@@ -140,8 +153,8 @@ public class GameWorld {
         }
 
         // Рендер игроков карты
-        for (Map.Entry<ClientHandler, Player> entry : players.entrySet()) {
-            ClientHandler handler = entry.getKey();
+        for (Map.Entry<String, Player> entry : players.entrySet()) {
+            String playerId = entry.getKey(); // ★ String вместо ClientHandler
             Player p = entry.getValue();
 
             if (p.getCurrentLevel() == myPlayer.getCurrentLevel() &&
@@ -149,7 +162,8 @@ public class GameWorld {
                     p.getMapY() == myPlayer.getMapY()) {
 
                 Position pos = p.getPosition();
-                if (handler == forClient) {
+                // ★ ИЗМЕНЕНО: сравнение строк
+                if (playerId.equals(myPlayerId)) {
                     chars[pos.y()][pos.x()] = '@';
                     colors[pos.y()][pos.x()] = 92;
                 } else {
@@ -160,5 +174,13 @@ public class GameWorld {
         }
 
         return new WorldSnapshot(w, h, chars, colors, myPlayer.getPosition());
+    }
+
+    public int getPlayerCount() {
+        return players.size();
+    }
+
+    public long getSeed() {
+        return seed;
     }
 }

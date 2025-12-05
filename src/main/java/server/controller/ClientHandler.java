@@ -7,6 +7,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.UUID;
 
 public class ClientHandler {
     private final Socket socket;
@@ -14,24 +15,18 @@ public class ClientHandler {
     private final DataInputStream in;
     private final DataOutputStream out;
     private volatile boolean disconnected = false;
-    private final String clientAddress; // Храним адрес
+    private final String clientAddress;
+    private final String playerId; // ★ Добавлено
 
     public ClientHandler(Socket socket, GameWorld world) throws IOException {
         this.socket = socket;
         this.world = world;
         this.clientAddress = socket.getInetAddress().toString();
+        this.playerId = UUID.randomUUID().toString();
         this.in = new DataInputStream(socket.getInputStream());
         this.out = new DataOutputStream(socket.getOutputStream());
 
         world.addPlayer(this);
-    }
-
-    public String getAddress() {
-        return clientAddress;
-    }
-
-    public boolean isDisconnected() {
-        return disconnected;
     }
 
     public void readLoop() {
@@ -71,11 +66,23 @@ public class ClientHandler {
     private void close() {
         if (disconnected) return;
         disconnected = true;
-        System.out.println("Client disconnected: " + clientAddress);
+        System.out.println("Client disconnected: " + clientAddress + " (ID: " + playerId + ")");
 
         world.removePlayer(this);
         try {
             socket.close();
         } catch (IOException ignored) {}
+    }
+
+    public String getPlayerId() {
+        return playerId;
+    }
+
+    public String getAddress() {
+        return clientAddress;
+    }
+
+    public boolean isDisconnected() {
+        return disconnected;
     }
 }
