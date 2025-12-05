@@ -7,8 +7,8 @@ import java.util.Random;
 
 public class DungeonMap {
     // Размеры карты без стен
-    public static final int WIDTH = 120;
-    public static final int HEIGHT = 90;
+    public static final int WIDTH = 80;
+    public static final int HEIGHT = 40;
     private final TileType[][] tiles;
     private final long seed;
 
