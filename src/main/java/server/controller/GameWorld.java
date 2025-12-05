@@ -3,16 +3,20 @@ package server.controller;
 import server.generate_map.DungeonLevel;
 import server.generate_map.DungeonManager;
 import server.generate_map.DungeonMap;
+import server.model.EnemyNpc;
+import server.model.LootPile;
 import server.model.Player;
 import server.model.TileType;
 import shared.InputAction;
 import shared.Position;
 import shared.WorldSnapshot;
-
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+
 public class GameWorld {
+    private final Map<UUID, EnemyNpc> enemies = new ConcurrentHashMap<>();
+    private final List<LootPile> lootPiles = new ArrayList<>();
     private final DungeonManager dungeonManager;
     private final Map<String, Player> players = new ConcurrentHashMap<>();
     private final long seed;
@@ -20,23 +24,100 @@ public class GameWorld {
     public GameWorld(long seed) {
         this.seed = seed;
         this.dungeonManager = new DungeonManager(seed);
-        System.out.println("✓ Game world initialized with seed: " + seed);
+        System.out.println("Game world initialized with seed: " + seed);
     }
 
     public GameWorld() {
         this(System.currentTimeMillis());
     }
 
-    /**
-     * Обновление игрового мира (логика NPC, событий, таймеров)
-     */
     public synchronized void tick() {
-        // TODO Блок 3: обновление NPC и врагов
-        // TODO: обработка событий мира
-        // TODO: обновление таймеров и эффектов
+        // ИИ мобов: преследование и атака
+        for (EnemyNpc enemy : enemies.values()) {
+            if (!enemy.isAlive()) continue;
 
-        // Пока заглушка для будущей логики
-         System.out.println("World tick executed");
+            Player targetPlayer = null;
+            int minDistance = Integer.MAX_VALUE;
+
+            for (Player p : players.values()) {
+                if (p.getCurrentLevel() == enemy.getCurrentLevel() &&
+                        p.getMapX() == enemy.getMapX() &&
+                        p.getMapY() == enemy.getMapY()) {
+
+                    int dist = enemy.distanceTo(p.getPosition());
+                    if (dist < minDistance && enemy.isInAggroRange(p.getPosition())) {
+                        minDistance = dist;
+                        targetPlayer = p;
+                    }
+                }
+            }
+
+            if (targetPlayer != null) {
+                Position nextPos = enemy.getNextStepTowards(targetPlayer.getPosition());
+                DungeonLevel level = dungeonManager.getLevel(enemy.getCurrentLevel());
+                DungeonMap map = level.getMap(enemy.getMapX(), enemy.getMapY());
+                TileType tile = map.getTile(nextPos.x(), nextPos.y());
+
+                if (tile != TileType.WALL) {
+                    if (nextPos.equals(targetPlayer.getPosition())) {
+                        targetPlayer.takeDamage(enemy.getAttack());
+                        System.out.println("⚔ Enemy hit player for " + enemy.getAttack() + " dmg");
+
+                        if (targetPlayer.getHp() <= 0) {
+                            respawnPlayer(targetPlayer);
+                        }
+                    } else {
+                        enemy.setPosition(nextPos);
+                    }
+                }
+            }
+        }
+
+        // Удаление мертвых мобов и дроп лута
+        Iterator<Map.Entry<UUID, EnemyNpc>> it = enemies.entrySet().iterator();
+        while (it.hasNext()) {
+            EnemyNpc enemy = it.next().getValue();
+            if (!enemy.isAlive()) {
+                LootPile loot = new LootPile(enemy.getPosition(),
+                        3 + new java.util.Random().nextInt(3));
+                loot.setLevel(enemy.getCurrentLevel());
+                loot.setMapGrid(enemy.getMapX(), enemy.getMapY());
+                lootPiles.add(loot);
+                System.out.println("Enemy died, dropped " + loot.getGoldAmount() + " gold");
+                it.remove();
+            }
+        }
+
+        // Автоподбор лута
+        for (Player p : players.values()) {
+            Iterator<LootPile> lootIt = lootPiles.iterator();
+            while (lootIt.hasNext()) {
+                LootPile loot = lootIt.next();
+                if (p.getCurrentLevel() == loot.getLevel() &&
+                        p.getMapX() == loot.getMapX() &&
+                        p.getMapY() == loot.getMapY() &&
+                        p.getPosition().equals(loot.getPosition())) {
+
+                    p.addGold(loot.getGoldAmount());
+                    System.out.println("💰 Player picked up " + loot.getGoldAmount() + " gold");
+                    lootIt.remove();
+                }
+            }
+        }
+    }
+
+    private void respawnPlayer(Player player) {
+        DungeonLevel level = dungeonManager.getLevel(1);
+        DungeonMap map = level.getMap(0, 0);
+        Position respawnPos = map.getRandomFloorPosition();
+
+        player.setLevel(1);
+        player.setMapGrid(0, 0);
+        player.setPosition(respawnPos);
+        player.setHp(player.getMaxHp());
+        player.setGold(0);
+
+        System.out.println("Player died and respawned at " + respawnPos);
     }
 
     public void addPlayer(ClientHandler client) {
@@ -54,6 +135,24 @@ public class GameWorld {
 
         players.put(playerId, newPlayer);
         System.out.println("✓ Player added: " + playerId + " at " + spawnPos);
+    }
+
+    private void spawnEnemiesOnMap(DungeonLevel level, int mapX, int mapY, int levelNum) {
+        DungeonMap map = level.getMap(mapX, mapY);
+        if (map == null) return;
+
+        int mobCount = 2 + (levelNum - 1) + new java.util.Random().nextInt(3);
+        mobCount = Math.min(mobCount, 8);
+
+        for (int i = 0; i < mobCount; i++) {
+            Position spawnPos = map.getRandomFloorPosition();
+            EnemyNpc mob = EnemyNpc.createBasicMob(spawnPos);
+            mob.setLevel(levelNum);
+            mob.setMapGrid(mapX, mapY);
+            enemies.put(mob.getId(), mob);
+        }
+
+        System.out.println("✓ Spawned " + mobCount + " enemies on level " + levelNum);
     }
 
     public void removePlayer(ClientHandler client) {
