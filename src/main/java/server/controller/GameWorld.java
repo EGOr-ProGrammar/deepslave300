@@ -7,9 +7,8 @@ import server.model.EnemyNpc;
 import server.model.LootPile;
 import server.model.Player;
 import server.model.TileType;
-import shared.InputAction;
-import shared.Position;
-import shared.WorldSnapshot;
+import shared.*;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -253,48 +252,83 @@ public class GameWorld {
         Player myPlayer = players.get(myPlayerId);
         if (myPlayer == null) return null;
 
-        // Текущая карта игрока
         DungeonLevel level = dungeonManager.getLevel(myPlayer.getCurrentLevel());
         DungeonMap map = level.getMap(myPlayer.getMapX(), myPlayer.getMapY());
-
         int w = DungeonMap.WIDTH;
         int h = DungeonMap.HEIGHT;
         char[][] chars = new char[h][w];
         int[][] colors = new int[h][w];
 
-        // Рендер тайлов карты
+        // Рендер тайлов
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 TileType t = map.getTile(x, y);
                 chars[y][x] = t.symbol;
-                if (t == TileType.WALL) colors[y][x] = 90; // Серый
-                else if (t == TileType.STAIRS_DOWN) colors[y][x] = 97; // Белый яркий
-                else colors[y][x] = 37; // Пол
+                if (t == TileType.WALL) colors[y][x] = 90;
+                else if (t == TileType.STAIRS_DOWN) colors[y][x] = 97;
+                else colors[y][x] = 37;
             }
         }
 
-        // Рендер игроков карты
-        for (Map.Entry<String, Player> entry : players.entrySet()) {
-            String playerId = entry.getKey(); // ★ String вместо ClientHandler
-            Player p = entry.getValue();
+        // Сбор мобов
+        List<NpcSnapshot> npcSnapshots = new ArrayList<>();
+        for (EnemyNpc enemy : enemies.values()) {
+            if (enemy.getCurrentLevel() == myPlayer.getCurrentLevel() &&
+                    enemy.getMapX() == myPlayer.getMapX() &&
+                    enemy.getMapY() == myPlayer.getMapY() &&
+                    enemy.isAlive()) {
 
+                Position pos = enemy.getPosition();
+                npcSnapshots.add(new NpcSnapshot(
+                        pos.x(), pos.y(),
+                        enemy.getHp(), enemy.getMaxHp(),
+                        enemy.getSymbol()
+                ));
+            }
+        }
+
+        // Сбор лута
+        List<LootSnapshot> lootSnapshots = new ArrayList<>();
+        for (LootPile loot : lootPiles) {
+            if (loot.getLevel() == myPlayer.getCurrentLevel() &&
+                    loot.getMapX() == myPlayer.getMapX() &&
+                    loot.getMapY() == myPlayer.getMapY()) {
+
+                Position pos = loot.getPosition();
+                lootSnapshots.add(new LootSnapshot(
+                        pos.x(), pos.y(),
+                        loot.getGoldAmount()
+                ));
+            }
+        }
+
+        // Рендер игроков
+        for (Map.Entry<String, Player> entry : players.entrySet()) {
+            String playerId = entry.getKey();
+            Player p = entry.getValue();
             if (p.getCurrentLevel() == myPlayer.getCurrentLevel() &&
                     p.getMapX() == myPlayer.getMapX() &&
                     p.getMapY() == myPlayer.getMapY()) {
 
                 Position pos = p.getPosition();
-                // ★ ИЗМЕНЕНО: сравнение строк
                 if (playerId.equals(myPlayerId)) {
+                    // Пользователь
                     chars[pos.y()][pos.x()] = '@';
                     colors[pos.y()][pos.x()] = 92;
                 } else {
+                    // Другие игроки
                     chars[pos.y()][pos.x()] = 'P';
                     colors[pos.y()][pos.x()] = p.getColorCode();
                 }
             }
         }
 
-        return new WorldSnapshot(w, h, chars, colors, myPlayer.getPosition());
+        // Передача статов игрока
+        return new WorldSnapshot(
+                w, h, chars, colors, myPlayer.getPosition(),
+                npcSnapshots, lootSnapshots,
+                myPlayer.getHp(), myPlayer.getMaxHp(), myPlayer.getGold()
+        );
     }
 
     public int getPlayerCount() {

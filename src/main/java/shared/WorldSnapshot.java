@@ -1,7 +1,5 @@
 package shared;
 
-import java.util.Map;
-
 /**
  * Снимок состояния игрового мира для передачи клиенту.
  * Содержит всю информацию, необходимую для отрисовки текущего кадра.
@@ -15,22 +13,26 @@ import java.util.Map;
  * @param timestamp - время создания снапшота (для синхронизации)
  * @param playersData - данные всех игроков на уровне (для мультиплеера)
  */
+
+import java.io.Serializable;
+import java.util.List;
+
 public record WorldSnapshot(
         int width,
         int height,
         char[][] tiles,
         int[][] colors,
         Position playerPos,
-        int currentDepth,
-        long timestamp,
-        Map<String, PlayerData> playersData
-) {
-    /**
-     * Упрощенный конструктор для обратной совместимости
-     */
-    public WorldSnapshot(int width, int height, char[][] tiles,
-                         int[][] colors, Position playerPos) {
-        this(width, height, tiles, colors, playerPos, 1,
-                System.currentTimeMillis(), Map.of());
+        List<NpcSnapshot> npcs,       // ★ НОВОЕ
+        List<LootSnapshot> loot,      // ★ НОВОЕ
+        int playerHp,
+        int playerMaxHp,
+        int playerGold
+) implements Serializable {
+
+    public WorldSnapshot(int width, int height, char[][] tiles, int[][] colors, Position playerPos) {
+        this(width, height, tiles, colors, playerPos,
+                List.of(), List.of(), 20, 20, 0);
     }
 }
+
