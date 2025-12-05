@@ -19,6 +19,7 @@ public class GameWorld {
     private final DungeonManager dungeonManager;
     private final Map<String, Player> players = new ConcurrentHashMap<>();
     private final long seed;
+    private static final double MOB_DENSITY = 2.0; // множитель плотности врагов
 
     public GameWorld(long seed) {
         this.seed = seed;
@@ -141,8 +142,9 @@ public class GameWorld {
         DungeonMap map = level.getMap(mapX, mapY);
         if (map == null) return;
 
-        int mobCount = 2 + (levelNum - 1) + new java.util.Random().nextInt(3);
-        mobCount = Math.min(mobCount, 8);
+        int baseMobCount = 2 + (levelNum - 1) + new Random().nextInt(3);
+        int mobCount = (int)(baseMobCount * MOB_DENSITY);
+        mobCount = Math.min(mobCount, 300);
 
         for (int i = 0; i < mobCount; i++) {
             Position spawnPos = map.getRandomFloorPosition();
