@@ -30,6 +30,7 @@ public record WorldSnapshot(
         int playerGold
 ) implements Serializable {
 
+    // TODO: убрать hardcode статов игрока
     public WorldSnapshot(int width, int height, char[][] tiles, int[][] colors, Position playerPos) {
         this(width, height, tiles, colors, playerPos,
                 List.of(), List.of(), 20, 20, 0);
