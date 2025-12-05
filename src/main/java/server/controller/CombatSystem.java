@@ -1,12 +1,9 @@
 package server.controller;
 
 import server.model.EnemyNpc;
-import server.model.LootPile;
 import server.model.Player;
 import shared.Position;
 
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -34,22 +31,6 @@ public class CombatSystem {
             }
         }
         return false;
-    }
-
-    public static void pickupLootAtPosition(Player player, List<LootPile> lootPiles) {
-        Iterator<LootPile> it = lootPiles.iterator();
-        while (it.hasNext()) {
-            LootPile loot = it.next();
-            if (player.getCurrentLevel() == loot.getLevel() &&
-                    player.getMapX() == loot.getMapX() &&
-                    player.getMapY() == loot.getMapY() &&
-                    player.getPosition().equals(loot.getPosition())) {
-
-                player.addGold(loot.getGoldAmount());
-                System.out.println("💰 Player picked up " + loot.getGoldAmount() + " gold");
-                it.remove();
-            }
-        }
     }
 
     public static boolean isPlayerAt(Position targetPos, Player currentPlayer,
