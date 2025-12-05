@@ -134,6 +134,7 @@ public class GameWorld {
 
         players.put(playerId, newPlayer);
         System.out.println("✓ Player added: " + playerId + " at " + spawnPos);
+        spawnEnemiesOnMap(level1, startMapX, startMapY, 1);
     }
 
     private void spawnEnemiesOnMap(DungeonLevel level, int mapX, int mapY, int levelNum) {
@@ -218,14 +219,15 @@ public class GameWorld {
         if (tile == TileType.STAIRS_DOWN) {
             int nextLevel = player.getCurrentLevel() + 1;
             DungeonLevel newLevel = dungeonManager.getLevel(nextLevel);
-
-            // Спаун на новом уровне
             DungeonMap newMap = newLevel.getMap(0, 0);
             Position newSpawn = newMap.getRandomFloorPosition();
 
             player.setLevel(nextLevel);
             player.setMapGrid(0, 0);
             player.setPosition(newSpawn);
+
+            // Спавн мобов на новом уровне
+            spawnEnemiesOnMap(newLevel, 0, 0, nextLevel);
 
             System.out.println("✓ Player " + playerId + " descended to level " + nextLevel);
             return;
@@ -271,36 +273,10 @@ public class GameWorld {
         }
 
         // Сбор мобов
-        List<NpcSnapshot> npcSnapshots = new ArrayList<>();
-        for (EnemyNpc enemy : enemies.values()) {
-            if (enemy.getCurrentLevel() == myPlayer.getCurrentLevel() &&
-                    enemy.getMapX() == myPlayer.getMapX() &&
-                    enemy.getMapY() == myPlayer.getMapY() &&
-                    enemy.isAlive()) {
-
-                Position pos = enemy.getPosition();
-                npcSnapshots.add(new NpcSnapshot(
-                        pos.x(), pos.y(),
-                        enemy.getHp(), enemy.getMaxHp(),
-                        enemy.getSymbol()
-                ));
-            }
-        }
+        List<NpcSnapshot> npcSnapshots = getNpcSnapshots(myPlayer);
 
         // Сбор лута
-        List<LootSnapshot> lootSnapshots = new ArrayList<>();
-        for (LootPile loot : lootPiles) {
-            if (loot.getLevel() == myPlayer.getCurrentLevel() &&
-                    loot.getMapX() == myPlayer.getMapX() &&
-                    loot.getMapY() == myPlayer.getMapY()) {
-
-                Position pos = loot.getPosition();
-                lootSnapshots.add(new LootSnapshot(
-                        pos.x(), pos.y(),
-                        loot.getGoldAmount()
-                ));
-            }
-        }
+        List<LootSnapshot> lootSnapshots = getLootSnapshots(myPlayer);
 
         // Рендер игроков
         for (Map.Entry<String, Player> entry : players.entrySet()) {
@@ -329,6 +305,41 @@ public class GameWorld {
                 npcSnapshots, lootSnapshots,
                 myPlayer.getHp(), myPlayer.getMaxHp(), myPlayer.getGold()
         );
+    }
+
+    private List<LootSnapshot> getLootSnapshots(Player myPlayer) {
+        List<LootSnapshot> lootSnapshots = new ArrayList<>();
+        for (LootPile loot : lootPiles) {
+            if (loot.getLevel() == myPlayer.getCurrentLevel()
+                    && loot.getMapX() == myPlayer.getMapX()
+                    && loot.getMapY() == myPlayer.getMapY()) {
+
+                Position pos = loot.getPosition();
+                lootSnapshots.add(new LootSnapshot(
+                        pos.x(), pos.y(), loot.getGoldAmount()
+                ));
+            }
+        }
+        return lootSnapshots;
+    }
+
+    private List<NpcSnapshot> getNpcSnapshots(Player myPlayer) {
+        List<NpcSnapshot> npcSnapshots = new ArrayList<>();
+        for (EnemyNpc enemy : enemies.values()) {
+            if (!enemy.isAlive()) continue;
+            if (enemy.getCurrentLevel() == myPlayer.getCurrentLevel()
+                    && enemy.getMapX() == myPlayer.getMapX()
+                    && enemy.getMapY() == myPlayer.getMapY()) {
+
+                Position pos = enemy.getPosition();
+                npcSnapshots.add(new NpcSnapshot(
+                        pos.x(), pos.y(),
+                        enemy.getHp(), enemy.getMaxHp(),
+                        enemy.getSymbol()
+                ));
+            }
+        }
+        return npcSnapshots;
     }
 
     public int getPlayerCount() {
