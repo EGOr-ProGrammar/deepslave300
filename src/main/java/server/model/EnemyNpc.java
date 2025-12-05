@@ -16,6 +16,7 @@ public class EnemyNpc {
     private final int attack;
     private final int aggroRange;
     private boolean alive;
+    private long lastActionTime = 0L;
 
     // Координаты уровня и карты, где находится моб
     private int currentLevel;
@@ -116,6 +117,11 @@ public class EnemyNpc {
     public int getCurrentLevel() { return currentLevel; }
     public int getMapX() { return currentMapGridX; }
     public int getMapY() { return currentMapGridY; }
+    public long getLastActionTime() { return lastActionTime; }
+
+    public void setLastActionTime(long time) {
+        this.lastActionTime = time;
+    }
 
     public void setPosition(Position position) {
         this.position = position;
