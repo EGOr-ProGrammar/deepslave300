@@ -11,28 +11,39 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TcpServer {
-    private final int port;
+    private final ServerConfig config;
     private final GameWorld world;
-    // Список всех активных сессий для рассылки обновлений
     private final List<ClientHandler> clients = new ArrayList<>();
+    private volatile boolean running = true;
 
-    public TcpServer(int port, GameWorld world) {
-        this.port = port;
+    public TcpServer(ServerConfig config, GameWorld world) {
+        this.config = config;
         this.world = world;
     }
 
     public void start() throws IOException {
-        // 1. Запускаем единый игровой цикл в отдельном потоке
-        new Thread(new GameLoop(this), "server-gameloop").start();
+        GameLoop gameLoop = new GameLoop(this, config.getTickRate());
+        new Thread(gameLoop, "server-gameloop").start();
 
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Server started on port " + port);
+        try (ServerSocket serverSocket = new ServerSocket(config.getPort())) {
+            System.out.println("✓ Server started on port " + config.getPort());
+            System.out.println("✓ Waiting for players...\n");
 
-            // 2. Вечный цикл приема подключений
-            while (true) {
+            while (running) {
                 try {
                     Socket socket = serverSocket.accept();
-                    System.out.println("New client connected: " + socket.getInetAddress());
+
+                    // Проверить лимит игроков
+                    synchronized (clients) {
+                        if (clients.size() >= config.getMaxPlayers()) {
+                            System.out.println("✗ Connection rejected (max players): "
+                                    + socket.getInetAddress());
+                            socket.close();
+                            continue;
+                        }
+                    }
+
+                    System.out.println("✓ New client connected: " + socket.getInetAddress());
 
                     ClientHandler handler = new ClientHandler(socket, world);
 
@@ -40,11 +51,12 @@ public class TcpServer {
                         clients.add(handler);
                     }
 
-                    // Запускаем чтение ввода клиента в его личном потоке
-                    new Thread(handler::readLoop, "client-handler").start();
+                    new Thread(handler::readLoop, "client-handler-" + clients.size()).start();
 
                 } catch (IOException e) {
-                    System.err.println("Connection error: " + e.getMessage());
+                    if (running) {
+                        System.err.println("✗ Connection error: " + e.getMessage());
+                    }
                 }
             }
         }
@@ -52,7 +64,7 @@ public class TcpServer {
 
     public void broadcastState() {
         synchronized (clients) {
-            // Удаляем отключившихся
+            // Удалить отключившихся
             clients.removeIf(ClientHandler::isDisconnected);
 
             // Рассылаем состояние каждому
@@ -60,5 +72,20 @@ public class TcpServer {
                 client.sendSnapshot(world.snapshot(client));
             }
         }
+    }
+
+    public void stop() {
+        running = false;
+        System.out.println("Server shutting down...");
+    }
+
+    public int getConnectedPlayers() {
+        synchronized (clients) {
+            return clients.size();
+        }
+    }
+
+    public ServerConfig getConfig() {
+        return config;
     }
 }
