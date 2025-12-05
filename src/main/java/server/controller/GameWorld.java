@@ -27,6 +27,18 @@ public class GameWorld {
         this(System.currentTimeMillis());
     }
 
+    /**
+     * Обновление игрового мира (логика NPC, событий, таймеров)
+     */
+    public synchronized void tick() {
+        // TODO Блок 3: обновление NPC и врагов
+        // TODO: обработка событий мира
+        // TODO: обновление таймеров и эффектов
+
+        // Пока заглушка для будущей логики
+         System.out.println("World tick executed");
+    }
+
     public void addPlayer(ClientHandler client) {
         String playerId = client.getPlayerId(); // ★ Получаем ID
 
@@ -106,9 +118,19 @@ public class GameWorld {
 
         // Проверка спуска вниз
         if (tile == TileType.STAIRS_DOWN) {
-            // TODO: реализовать логику перехода на след уровень
-            // player.setLevel(player.getCurrentLevel() + 1)
-            // Но пока просто стоим на ней
+            int nextLevel = player.getCurrentLevel() + 1;
+            DungeonLevel newLevel = dungeonManager.getLevel(nextLevel);
+
+            // Спаун на новом уровне
+            DungeonMap newMap = newLevel.getMap(0, 0);
+            Position newSpawn = newMap.getRandomFloorPosition();
+
+            player.setLevel(nextLevel);
+            player.setMapGrid(0, 0);
+            player.setPosition(newSpawn);
+
+            System.out.println("✓ Player " + playerId + " descended to level " + nextLevel);
+            return;
         }
 
         player.setPosition(new Position(nx, ny));

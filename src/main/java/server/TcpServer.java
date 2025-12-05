@@ -88,4 +88,8 @@ public class TcpServer {
     public ServerConfig getConfig() {
         return config;
     }
+
+    public GameWorld getWorld() {
+        return world;
+    }
 }

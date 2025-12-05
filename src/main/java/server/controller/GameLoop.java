@@ -14,14 +14,16 @@ public class GameLoop implements Runnable {
     @Override
     public void run() {
         System.out.println("Game loop started (tick rate: " + tickRate + "ms)");
-
         while (true) {
             try {
+                // Обновление игрового мира
+                server.getWorld().tick();
+
                 // Рассылка состояния всем клиентам
                 server.broadcastState();
+
                 // Ожидать перед следующим тиком
                 Thread.sleep(tickRate);
-
             } catch (InterruptedException e) {
                 System.err.println("Game loop interrupted");
                 break;
